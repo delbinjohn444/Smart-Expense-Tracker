@@ -1,0 +1,320 @@
+{% extends 'base.html' %}
+{% block title %} — Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- Page Header -->
+<div class="page-header fade-up">
+  <div class="page-header-meta">
+    <h1>Overview</h1>
+    <p class="page-subtitle">Your personal finance at a glance</p>
+  </div>
+  <a href="{{ url_for('add_expense') }}" class="btn btn-primary">
+    <i class="fa-solid fa-plus"></i> New Expense
+  </a>
+</div>
+
+<!-- ── Stat Cards ── -->
+<div class="stats-grid">
+
+  <div class="stat-card fade-up delay-1">
+    <div class="stat-header">
+      <div class="stat-icon-bg stat-icon-accent"><i class="fa-solid fa-calendar-day"></i></div>
+      {% if mom_change > 0 %}
+        <span class="stat-badge up"><i class="fa-solid fa-arrow-up"></i> {{ "%.1f"|format(mom_change) }}%</span>
+      {% elif mom_change < 0 %}
+        <span class="stat-badge down"><i class="fa-solid fa-arrow-down"></i> {{ "%.1f"|format(mom_change|abs) }}%</span>
+      {% else %}
+        <span class="stat-badge neutral">—</span>
+      {% endif %}
+    </div>
+    <div class="stat-label">This Month</div>
+    <div class="stat-value">₹{{ "%.2f"|format(month_stats['total']) }}</div>
+    <div class="stat-sub">{{ month_stats['cnt'] }} transaction{% if month_stats['cnt'] != 1 %}s{% endif %}</div>
+  </div>
+
+  <div class="stat-card fade-up delay-2">
+    <div class="stat-header">
+      <div class="stat-icon-bg stat-icon-cyan"><i class="fa-solid fa-layer-group"></i></div>
+    </div>
+    <div class="stat-label">Total (Filtered)</div>
+    <div class="stat-value">₹{{ "%.2f"|format(total_filtered) }}</div>
+    <div class="stat-sub">Based on current filters</div>
+  </div>
+
+  <div class="stat-card fade-up delay-3">
+    <div class="stat-header">
+      <div class="stat-icon-bg stat-icon-pink"><i class="fa-solid fa-fire-flame-curved"></i></div>
+    </div>
+    <div class="stat-label">Peak Day</div>
+    <div class="stat-value">{% if top_day %}₹{{ "%.2f"|format(top_day['total']) }}{% else %}—{% endif %}</div>
+    <div class="stat-sub">{% if top_day %}{{ top_day['date'] }}{% else %}No data yet{% endif %}</div>
+  </div>
+
+  <div class="stat-card fade-up delay-4">
+    <div class="stat-header">
+      <div class="stat-icon-bg stat-icon-green"><i class="fa-solid fa-infinity"></i></div>
+    </div>
+    <div class="stat-label">All Time</div>
+    <div class="stat-value">₹{{ "%.2f"|format(all_time) }}</div>
+    <div class="stat-sub">Lifetime spending</div>
+  </div>
+
+</div>
+
+<!-- ── Charts ── -->
+<div class="charts-grid fade-up delay-2">
+
+  <div class="glass-card">
+    <div class="section-header" style="margin-bottom:16px;">
+      <div class="section-title">
+        <div class="section-dot"></div>
+        <h2>Spending Trend</h2>
+      </div>
+      <span style="font-size:0.8rem; color:var(--text-muted);">Last 30 days</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="trendChart"></canvas>
+    </div>
+  </div>
+
+  <div class="glass-card">
+    <div class="section-header" style="margin-bottom:16px;">
+      <div class="section-title">
+        <div class="section-dot" style="background:var(--cyan); box-shadow: 0 0 8px var(--cyan);"></div>
+        <h2>By Category</h2>
+      </div>
+      <span style="font-size:0.8rem; color:var(--text-muted);">This month</span>
+    </div>
+    <div class="chart-container">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── Transactions Table ── -->
+<div class="glass-card fade-up delay-3">
+
+  <div class="section-header">
+    <div class="section-title">
+      <div class="section-dot" style="background:var(--pink); box-shadow: 0 0 8px var(--pink);"></div>
+      <h2>Transactions</h2>
+    </div>
+    <span style="font-size:0.85rem; color:var(--text-muted);">{{ expenses|length }} record{% if expenses|length != 1 %}s{% endif %}</span>
+  </div>
+
+  <!-- Filters -->
+  <form method="GET" class="filter-bar">
+    <div class="input-with-icon" style="flex:1; min-width:160px;">
+      <i class="fa-solid fa-magnifying-glass input-icon"></i>
+      <input type="text" name="search" class="form-control"
+             placeholder="Search transactions…" value="{{ filters.search }}">
+    </div>
+
+    <select name="category" class="form-control" style="width:160px;">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+        <option value="{{ cat }}" {% if filters.category==cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="payment" class="form-control" style="width:140px;">
+      <option value="">All Methods</option>
+      {% for p in payments %}
+        <option value="{{ p }}" {% if filters.payment==p %}selected{% endif %}>{{ p }}</option>
+      {% endfor %}
+    </select>
+
+    <input type="date" name="date_from" class="form-control"
+           value="{{ filters.date_from }}" style="width:148px;">
+    <input type="date" name="date_to"   class="form-control"
+           value="{{ filters.date_to }}"   style="width:148px;">
+
+    <button type="submit" class="btn-icon-sq" title="Apply filters">
+      <i class="fa-solid fa-filter"></i>
+    </button>
+    <a href="{{ url_for('dashboard') }}" class="btn-icon-sq" title="Reset filters">
+      <i class="fa-solid fa-arrows-rotate"></i>
+    </a>
+  </form>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="nexus-table">
+      <thead>
+        <tr>
+          <th>Transaction</th>
+          <th>Category</th>
+          <th>Method</th>
+          <th>Date</th>
+          <th style="text-align:right;">Amount</th>
+          <th style="text-align:center;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in expenses %}
+        <tr>
+          <td>
+            <div class="transaction-title">{{ exp['title'] }}</div>
+            {% if exp['note'] %}<div class="transaction-note">{{ exp['note'] }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="cat-pill">
+              <span class="cat-emoji">{{ category_icons.get(exp['category'], '📦') }}</span>
+              {{ exp['category'] }}
+            </span>
+          </td>
+          <td><span class="payment-method"><i class="fa-regular fa-credit-card"></i>{{ exp['payment'] }}</span></td>
+          <td class="date-cell">{{ exp['date'] }}</td>
+          <td class="amount-cell" style="text-align:right;">₹{{ "%.2f"|format(exp['amount']) }}</td>
+          <td>
+            <div style="display:flex; justify-content:center; gap:6px;">
+              <a href="{{ url_for('edit_expense', eid=exp['id']) }}" class="btn-icon-sq" title="Edit">
+                <i class="fa-regular fa-pen-to-square"></i>
+              </a>
+              <form action="{{ url_for('delete_expense', eid=exp['id']) }}" method="post"
+                    onsubmit="return confirm('Delete this expense?');">
+                <button type="submit" class="btn-del" title="Delete">
+                  <i class="fa-regular fa-trash-can"></i>
+                </button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="6">
+            <div class="empty-state">
+              <span class="empty-state-icon"><i class="fa-regular fa-receipt"></i></span>
+              <p>No transactions found</p>
+              <span>Try adjusting your filters or <a href="{{ url_for('add_expense') }}" style="color:var(--accent-light);">add a new expense</a></span>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+  /* ── Chart.js defaults ── */
+  Chart.defaults.color = '#64748B';
+  Chart.defaults.borderColor = 'rgba(255,255,255,0.04)';
+  Chart.defaults.font.family = 'Inter';
+
+  /* ── Trend Chart ── */
+  const trendData = {{ trend_data | safe }};
+  const trendCtx  = document.getElementById('trendChart').getContext('2d');
+
+  const gradLine = trendCtx.createLinearGradient(0, 0, 0, 280);
+  gradLine.addColorStop(0,   'rgba(124,110,245,0.45)');
+  gradLine.addColorStop(1,   'rgba(124,110,245,0.00)');
+
+  new Chart(trendCtx, {
+    type: 'line',
+    data: {
+      labels: trendData.map(d => {
+        const [,m,day] = d.date.split('-');
+        return `${day}/${m}`;
+      }),
+      datasets: [{
+        label: 'Spend (₹)',
+        data: trendData.map(d => d.total),
+        borderColor: '#7C6EF5',
+        backgroundColor: gradLine,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#22D3EE',
+        pointBorderColor: '#080B12',
+        pointBorderWidth: 2,
+        pointRadius: 4,
+        pointHoverRadius: 6,
+        fill: true,
+        tension: 0.45
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#111827',
+          borderColor: 'rgba(255,255,255,0.08)',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            label: ctx => ` ₹${ctx.parsed.y.toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          grid: { color: 'rgba(255,255,255,0.04)' },
+          ticks: { callback: v => '₹'+v }
+        },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  /* ── Category Doughnut ── */
+  const catData = {{ cat_data | safe }};
+  const catCtx  = document.getElementById('categoryChart').getContext('2d');
+
+  const palette = [
+    '#7C6EF5','#22D3EE','#F472B6','#34D399',
+    '#FBBF24','#F87171','#A78BFA','#2DD4BF',
+    '#FB923C','#818CF8'
+  ];
+
+  new Chart(catCtx, {
+    type: 'doughnut',
+    data: {
+      labels: catData.map(d => d.category),
+      datasets: [{
+        data: catData.map(d => d.total),
+        backgroundColor: palette,
+        borderWidth: 2,
+        borderColor: '#0E1320',
+        hoverOffset: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: 10,
+            boxHeight: 10,
+            usePointStyle: true,
+            pointStyle: 'circle',
+            padding: 14,
+            font: { size: 11 }
+          }
+        },
+        tooltip: {
+          backgroundColor: '#111827',
+          borderColor: 'rgba(255,255,255,0.08)',
+          borderWidth: 1,
+          padding: 12,
+          callbacks: {
+            label: ctx => ` ₹${ctx.parsed.toFixed(2)}`
+          }
+        }
+      }
+    }
+  });
+</script>
+{% endblock %}

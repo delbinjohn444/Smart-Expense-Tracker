@@ -1,0 +1,111 @@
+{% extends 'base.html' %}
+{% block title %} — Add Expense{% endblock %}
+
+{% block content %}
+
+<div class="page-header fade-up">
+  <div class="page-header-meta">
+    <h1>Add Expense</h1>
+    <p class="page-subtitle">Record a new transaction</p>
+  </div>
+  <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">
+    <i class="fa-solid fa-arrow-left"></i> Back
+  </a>
+</div>
+
+<div class="glass-card form-card fade-up delay-1">
+
+  {% if errors %}
+  <div class="alert alert-danger">
+    <i class="fa-solid fa-triangle-exclamation alert-icon"></i>
+    <div>
+      <strong style="display:block; margin-bottom:6px;">Please fix the following:</strong>
+      <ul>{% for e in errors %}<li>{{ e }}</li>{% endfor %}</ul>
+    </div>
+  </div>
+  {% endif %}
+
+  <form method="POST" autocomplete="off">
+
+    <!-- Title -->
+    <div class="form-group">
+      <label class="form-label">Title <span class="required-star">*</span></label>
+      <div class="input-with-icon">
+        <i class="fa-solid fa-tag input-icon"></i>
+        <input type="text" name="title" class="form-control"
+               placeholder="e.g. Grocery shopping"
+               value="{{ form.get('title','') }}" required autofocus>
+      </div>
+    </div>
+
+    <!-- Amount + Date -->
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Amount <span class="required-star">*</span></label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-indian-rupee-sign input-icon"></i>
+          <input type="number" step="0.01" min="0.01" name="amount" class="form-control"
+                 placeholder="0.00" value="{{ form.get('amount','') }}" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date <span class="required-star">*</span></label>
+        <div class="input-with-icon">
+          <i class="fa-regular fa-calendar input-icon"></i>
+          <input type="date" name="date" class="form-control"
+                 value="{{ form.get('date', today) }}" required>
+        </div>
+      </div>
+    </div>
+
+    <!-- Category + Payment -->
+    <div class="form-grid-2">
+      <div class="form-group">
+        <label class="form-label">Category <span class="required-star">*</span></label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-shapes input-icon"></i>
+          <select name="category" class="form-control" required>
+            <option value="" disabled {% if not form.get('category') %}selected{% endif %}>Select category</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}" {% if form.get('category')==cat %}selected{% endif %}>
+                {{ category_icons.get(cat,'') }} {{ cat }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payment Method</label>
+        <div class="input-with-icon">
+          <i class="fa-regular fa-credit-card input-icon"></i>
+          <select name="payment" class="form-control">
+            {% for p in payments %}
+              <option value="{{ p }}" {% if form.get('payment','Cash')==p %}selected{% endif %}>{{ p }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- Note -->
+    <div class="form-group">
+      <label class="form-label">Note <span style="color:var(--text-muted); font-weight:400;">(optional)</span></label>
+      <textarea name="note" class="form-control" rows="3"
+                placeholder="Any additional details…">{{ form.get('note','') }}</textarea>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider"></div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button type="submit" class="btn btn-primary" style="flex:1;">
+        <i class="fa-solid fa-floppy-disk"></i> Save Expense
+      </button>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-ghost">Cancel</a>
+    </div>
+
+  </form>
+</div>
+
+{% endblock %}

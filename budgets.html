@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+{% block title %} — Budgets{% endblock %}
+
+{% block content %}
+
+<div class="page-header fade-up">
+  <div class="page-header-meta">
+    <h1>Budgets</h1>
+    <p class="page-subtitle">Set and monitor your monthly spending limits</p>
+  </div>
+</div>
+
+{% if msg == 'saved' %}
+<div class="alert alert-success fade-up">
+  <i class="fa-solid fa-circle-check alert-icon"></i>
+  <div><strong>Budget saved!</strong> Your monthly limit has been updated.</div>
+</div>
+{% elif msg == 'error' %}
+<div class="alert alert-danger fade-up">
+  <i class="fa-solid fa-triangle-exclamation alert-icon"></i>
+  <div><strong>Invalid amount.</strong> Please enter a positive number.</div>
+</div>
+{% endif %}
+
+<div style="display:grid; grid-template-columns: 340px 1fr; gap:24px; align-items:start;">
+
+  <!-- Set Budget Form -->
+  <div class="glass-card fade-up delay-1" style="position:sticky; top:24px;">
+    <div class="section-header" style="margin-bottom:20px;">
+      <div class="section-title">
+        <div class="section-dot" style="background:var(--amber); box-shadow:0 0 8px var(--amber);"></div>
+        <h2>Set Limit</h2>
+      </div>
+    </div>
+
+    <form method="POST" autocomplete="off">
+      <div class="form-group">
+        <label class="form-label">Category <span class="required-star">*</span></label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-shapes input-icon"></i>
+          <select name="category" class="form-control" required>
+            <option value="" disabled selected>Select category</option>
+            {% for cat in categories %}
+              <option value="{{ cat }}">{{ category_icons.get(cat,'') }} {{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Monthly Limit (₹) <span class="required-star">*</span></label>
+        <div class="input-with-icon">
+          <i class="fa-solid fa-indian-rupee-sign input-icon"></i>
+          <input type="number" step="0.01" min="0.01" name="limit" class="form-control"
+                 placeholder="0.00" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-primary" style="width:100%; margin-top:4px;">
+        <i class="fa-solid fa-floppy-disk"></i> Save Budget
+      </button>
+    </form>
+
+    <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border);">
+      <p style="font-size:0.8rem; color:var(--text-muted); line-height:1.6;">
+        <i class="fa-solid fa-circle-info" style="margin-right:6px; color:var(--accent-light);"></i>
+        Saving a limit for an existing category will overwrite its current budget.
+      </p>
+    </div>
+  </div>
+
+  <!-- Budget Cards -->
+  <div class="fade-up delay-2">
+    {% if budget_data %}
+    <div class="budget-grid">
+      {% for b in budget_data %}
+      <div class="budget-track-card">
+        <div class="budget-card-top">
+          <div class="budget-cat-wrap">
+            <div class="budget-cat-icon"
+                 style="background:{% if b.status=='danger' %}var(--red-dim){% elif b.status=='warn' %}var(--amber-dim){% else %}var(--accent-dim){% endif %};">
+              {{ category_icons.get(b.category,'📦') }}
+            </div>
+            <div>
+              <div class="budget-cat-name">{{ b.category }}</div>
+              <div class="budget-amounts">₹{{ '%.2f'|format(b.spent) }} of ₹{{ '%.2f'|format(b.limit) }}</div>
+            </div>
+          </div>
+          <div class="budget-pct-badge budget-pct-{{ b.status }}">{{ b.pct }}%</div>
+        </div>
+
+        <div class="progress-track">
+          <div class="progress-fill fill-{{ b.status }}"
+               style="width:0%" data-w="{{ b.pct }}%"></div>
+        </div>
+
+        <div class="budget-status-bar">
+          <span class="budget-remaining">
+            {% set remaining = b.limit - b.spent %}
+            {% if remaining > 0 %}
+              ₹{{ '%.2f'|format(remaining) }} remaining
+            {% elif remaining == 0 %}
+              <span style="color:var(--amber);">Budget fully used</span>
+            {% else %}
+              <span style="color:var(--red);">Over by ₹{{ '%.2f'|format(remaining|abs) }}</span>
+            {% endif %}
+          </span>
+          <form action="{{ url_for('delete_budget', category=b.category) }}" method="POST"
+                onsubmit="return confirm('Remove budget for {{ b.category }}?');"
+                style="display:inline;">
+            <button type="submit" class="btn-del" title="Remove budget">
+              <i class="fa-regular fa-trash-can"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="glass-card" style="padding:64px 40px; text-align:center;">
+      <div class="empty-state">
+        <span class="empty-state-icon"><i class="fa-solid fa-bullseye"></i></span>
+        <p>No budgets set yet</p>
+        <span>Use the form on the left to set spending limits per category.</span>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      document.querySelectorAll('.progress-fill').forEach(bar => {
+        bar.style.width = bar.dataset.w;
+      });
+    }, 150);
+  });
+</script>
+{% endblock %}

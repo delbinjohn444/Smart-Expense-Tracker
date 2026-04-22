@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Expense Tracker — A modern, professional expense management system.">
+  <title>Expense Tracker{% block title %}{% endblock %}</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap"
+    rel="stylesheet">
+
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <!-- Core CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+
+<body>
+  <div class="app-container">
+
+    <!-- ── Sidebar ────────────────────────── -->
+    <aside class="sidebar">
+      <!-- Brand -->
+      <div class="sidebar-header">
+        <a href="{{ url_for('dashboard') }}" class="sidebar-brand" style="text-decoration:none;">
+          <div class="brand-icon">
+            <i class="fa-solid fa-wallet"></i>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Expense Tracker</span>
+            <span class="brand-tagline">Personal Finance</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Date badge -->
+      <div class="sidebar-date-badge">
+        <i class="fa-regular fa-calendar-days"></i>
+        <span id="sidebar-date">Loading…</span>
+      </div>
+
+      <!-- Nav -->
+      <div class="nav-section">
+        <div class="nav-section-label">Menu</div>
+        <ul class="nav-menu">
+          <li>
+            <a href="{{ url_for('dashboard') }}"
+              class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+              <span class="nav-icon"><i class="fa-solid fa-chart-pie"></i></span>
+              <span>Dashboard</span>
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('add_expense') }}"
+              class="nav-item {% if request.endpoint == 'add_expense' %}active{% endif %}">
+              <span class="nav-icon"><i class="fa-solid fa-circle-plus"></i></span>
+              <span>Add Expense</span>
+            </a>
+          </li>
+          <li>
+            <a href="{{ url_for('budgets') }}" class="nav-item {% if request.endpoint == 'budgets' %}active{% endif %}">
+              <span class="nav-icon"><i class="fa-solid fa-bullseye-arrow"></i></span>
+              <span>Budgets</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Footer export -->
+      <div class="sidebar-footer">
+        <a href="{{ url_for('export_csv') }}" class="export-btn">
+          <i class="fa-solid fa-file-arrow-down"></i>
+          <span>Export CSV</span>
+        </a>
+      </div>
+    </aside>
+    <!-- ─────────────────────────────────── -->
+
+    <main class="main-content">
+      {% block content %}{% endblock %}
+    </main>
+
+  </div><!-- /app-container -->
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Sidebar live date -->
+  <script>
+    (function () {
+      const el = document.getElementById('sidebar-date');
+      if (!el) return;
+      const d = new Date();
+      el.textContent = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    })();
+  </script>
+
+  {% block scripts %}{% endblock %}
+</body>
+
+</html>
